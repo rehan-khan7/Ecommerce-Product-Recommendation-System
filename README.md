@@ -1,81 +1,180 @@
-# Ecommerce-product-recommendation-system
+# Ecommerce Product Recommendation System
 
-Product Recommendation System is a machine learning-based project that provides personalized product recommendations to users based on their browsing and purchase history. The system utilizes collaborative filtering and content-based filtering algorithms to analyze user behavior and generate relevant recommendations. This project aims to improve the overall shopping experience for users, increase sales for e-commerce businesses
+This project focuses on building a **machine learning–driven recommendation system** for an e-commerce platform.  
+The system analyzes historical user–product interactions (ratings) to suggest relevant products that a user is likely to prefer.
 
-## Dataset
+Instead of relying on a single technique, multiple recommendation strategies are implemented to handle different real-world scenarios such as:
+- New users with no history
+- Sparse interaction data
+- Scalability for large datasets
+- Personalized recommendations
 
-I have used an amazon dataset on user ratings for electronic products, this dataset doesn't have any headers. To avoid biases,  each product and user is assigned a unique identifier instead of using their name or any other potentially biased information.
+The project is structured to demonstrate **progressive complexity**, starting from simple popularity-based recommendations and advancing toward latent factor models.
 
-* You can find the [dataset](https://www.kaggle.com/datasets/vibivij/amazon-electronics-rating-datasetrecommendation/download?datasetVersionNumber=1) here - https://www.kaggle.com/datasets/vibivij/amazon-electronics-rating-datasetrecommendation/download?datasetVersionNumber=1 
+---
 
-* You can find many other similar datasets here - https://jmcauley.ucsd.edu/data/amazon/
+## Dataset Description
 
+The dataset used in this project is an **Amazon Electronics product ratings dataset**, containing interactions between users and products in the form of ratings.
 
-## Approach
+Key characteristics:
+- The dataset does **not contain column headers**
+- User and product identifiers are anonymized
+- No personal or descriptive product information is used
 
-### **1) Rank Based Product Recommendation**
-Objective -
-* Recommend products with highest number of ratings.
-* Target new customers with most popular products.
-* Solve the [Cold Start Problem](https://github.com/Vaibhav67979/Ecommerce-product-recommendation-system/blob/18d7fb2b8feafd117f7c3f9f859255c2e28cfbe4/ColdStartProblem.md)
+To minimize bias and ensure fairness:
+- Each user and product is represented using a **unique numeric identifier**
+- No demographic or textual data is involved
 
-Outputs -
-* Recommend top 5 products with 50/100 minimum ratings/interactions.
+Dataset source:
+- https://www.kaggle.com/datasets/vibivij/amazon-electronics-rating-datasetrecommendation  
+- Additional datasets: https://jmcauley.ucsd.edu/data/amazon/
 
-Approach -
-* Calculate average rating for each product.
-* Calculate total number of ratings for each product.
-* Create a DataFrame using these values and sort it by average.
-* Write a function to get 'n' top products with specified minimum number of interactions.
+---
 
+## Recommendation Strategies
 
-### **2) Similarity based Collaborative filtering**
-Objective -
-* Provide personalized and relevant recommendations to users.
+### 1) Rank-Based Product Recommendation
 
-Outputs -
-* Recommend top 5 products based on interactions of similar users.
+#### Conceptual Motivation
 
-Approach -
-* Here, user_id is of object, for our convenience we convert it to value of 0 to 1539(integer type).
-* We write a function to find similar users - 
-  1. Find the similarity score of the desired user with each user in the interaction matrix using cosine_similarity and append to an empty list and sort it.
-  2. extract the similar user and similarity scores from the sorted list 
-  3. remove original user and its similarity score and return the rest.
-* We write a function to recommend users - 
-  1. Call the previous similar users function to get the similar users for the desired user_id.
-  2. Find prod_ids with which the original user has interacted -> observed_interactions
-  3. For each similar user Find 'n' products with which the similar user has interacted with but not the actual user.
-  4. return the specified number of products. 
+Rank-based recommendation is the **simplest form** of a recommender system.  
+It does not rely on personalization and instead focuses on **overall product popularity**.
 
-### **3) Model based Collaborative filtering**
-Objective -
-* Provide personalized recommendations to users based on their past behavior and preferences, while also addressing the challenges of sparsity and scalability that can arise in other collaborative filtering techniques.
+This approach is particularly useful when:
+- A user is new to the platform
+- No prior interaction data is available
+- The system must immediately recommend something
 
-Outputs -
-* Recommend top 5 products for a particular user.
+This directly addresses the **Cold Start Problem**.
 
-Approach -
-* Taking the matrix of product ratings and converting it to a CSR(compressed sparse row) matrix. This is done to save memory and computational time, since only the non-zero values need to be stored.
-* Performing singular value decomposition (SVD) on the sparse or csr matrix. SVD is a matrix decomposition technique that can be used to reduce the dimensionality of a matrix. In this case, the SVD is used to reduce the dimensionality of the matrix of product ratings to 50 latent features.
-* Calculating the predicted ratings for all users using SVD. The predicted ratings are calculated by multiplying the U matrix, the sigma matrix, and the Vt matrix.
-* Storing the predicted ratings in a DataFrame. The DataFrame has the same columns as the original matrix of product ratings. The rows of the DataFrame correspond to the users. The values in the DataFrame are the predicted ratings for each user.
-* A funtion is written to recommend products based on the rating predictions made : 
-  1. It gets the user's ratings from the interactions_matrix.
-  2. It gets the user's predicted ratings from the preds_matrix.
-  3. It creates a DataFrame with the user's actual and predicted ratings.
-  4. It adds a column to the DataFrame with the product names.
-  5. It filters the DataFrame to only include products that the user has not rated.
-  6. It sorts the DataFrame by the predicted ratings in descending order.
-  7. It prints the top num_recommendations products.
-* Evaluating the model :
-  1. Calculate the average rating for all the movies by dividing the sum of all the ratings by the number of ratings.
-  2, Calculate the average rating for all the predicted ratings by dividing the sum of all the predicted ratings by the number of ratings.
-  3. Create a DataFrame called rmse_df that contains the average actual ratings and the average predicted ratings.
-  4. Calculate the RMSE of the SVD model by taking the square root of the mean of the squared errors between the average actual ratings and the average predicted ratings.
+Cold start explanation:
+[Cold Start Problem](ColdStartProblem.md)
 
-> The squared parameter in the mean_squared_error function determines whether to return the mean squared error (MSE) or the root mean squared error (RMSE). When squared is set to False, the function returns the RMSE, which is the square root of the MSE. In this case, you are calculating the RMSE, so you have set squared to False. This means that the errors are first squared, then averaged, and finally square-rooted to obtain the RMSE.
-     
+---
 
-| ⚠️  This project is solely for learning how recommedation systems work. ⚠️ |
-|-----------------------------------------------------------------------------|
+#### Objective
+- Identify products that are widely accepted by users
+- Recommend items with strong collective feedback
+- Provide default recommendations for new users
+
+---
+
+#### Methodology
+
+1. Aggregate all ratings for each product
+2. Compute:
+   - Total number of ratings per product
+   - Average rating per product
+3. Filter products that do not meet a minimum interaction threshold
+4. Sort remaining products based on average rating
+5. Return the top *N* ranked products
+
+This ensures that:
+- Products with very few ratings do not dominate the recommendations
+- Recommendations are statistically meaningful
+
+---
+
+#### Output
+- Top 5 products with at least 50 or 100 user interactions
+
+---
+
+### 2) Similarity-Based Collaborative Filtering (User-Based)
+
+#### Conceptual Motivation
+
+Unlike rank-based methods, collaborative filtering focuses on **personalization**.  
+The assumption behind this approach is:
+
+> Users with similar past behavior are likely to prefer similar products in the future.
+
+This method does **not require product metadata** and learns patterns purely from user interactions.
+
+---
+
+#### Objective
+- Recommend products based on preferences of similar users
+- Capture behavioral similarity between users
+
+---
+
+#### Methodology
+
+1. Convert user identifiers into integer indices to simplify matrix operations
+2. Create a **user–item interaction matrix**, where:
+   - Rows represent users
+   - Columns represent products
+   - Values represent ratings
+3. Compute **cosine similarity** between users
+4. For a target user:
+   - Identify the most similar users
+   - Exclude the target user from the similarity list
+5. Collect products interacted with by similar users
+6. Remove products already interacted with by the target user
+7. Rank remaining products and return top recommendations
+
+---
+
+#### Output
+- Top 5 personalized product recommendations per user
+
+---
+
+### 3) Model-Based Collaborative Filtering
+
+#### Conceptual Motivation
+
+User-based collaborative filtering becomes inefficient when:
+- The dataset grows large
+- The interaction matrix becomes sparse
+
+To overcome these limitations, **model-based collaborative filtering** is used.  
+This approach learns **latent factors** that represent hidden relationships between users and products.
+
+---
+
+#### Objective
+- Improve scalability and performance
+- Capture underlying user–product preference patterns
+- Handle sparse data efficiently
+
+---
+
+#### Methodology
+
+1. Convert the user–item rating matrix into a **Compressed Sparse Row (CSR)** matrix to reduce memory usage
+2. Apply **Singular Value Decomposition (SVD)** to factorize the matrix into:
+   - User latent features
+   - Product latent features
+3. Reduce dimensionality to a fixed number of latent factors (e.g., 50)
+4. Reconstruct the predicted rating matrix using the decomposed components
+5. For a given user:
+   - Compare predicted ratings with actual ratings
+   - Filter out already-rated products
+   - Rank remaining products by predicted rating
+6. Recommend the top *N* products
+
+---
+
+#### Model Evaluation
+
+To assess performance:
+1. Compute average actual ratings
+2. Compute average predicted ratings
+3. Calculate **Root Mean Squared Error (RMSE)**
+
+RMSE provides an interpretable measure of prediction accuracy, as it remains in the same scale as the ratings.
+
+> The `mean_squared_error` function is configured with `squared=False` to directly return RMSE instead of MSE.
+
+---
+
+## ⚠️ Disclaimer
+
+> ⚠️ This project is developed strictly for **learning and academic purposes**.  
+> It is intended to demonstrate the working principles of recommendation systems and is **not production-ready**.
+
+---
+
